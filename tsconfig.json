@@ -6,7 +6,9 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ES2022"]
   },
   "include": ["src"]
 }

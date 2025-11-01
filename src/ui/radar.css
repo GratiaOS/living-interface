@@ -1,0 +1,20 @@
+@media (prefers-reduced-motion: no-preference) {
+  .radar-dot {
+    border-radius: 9999px;
+    transition:
+      transform 600ms ease-in-out,
+      opacity 600ms ease-in-out,
+      box-shadow 600ms ease-in-out;
+    animation: radar-breathe 3.2s ease-in-out infinite alternate;
+  }
+
+  @keyframes radar-breathe {
+    from {
+      filter: brightness(1);
+    }
+
+    to {
+      filter: brightness(1.2);
+    }
+  }
+}
