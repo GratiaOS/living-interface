@@ -1,0 +1,70 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@gratiaos/pad-core':
+        specifier: ^1.0.4
+        version: 1.0.4(react@19.2.0)
+      '@gratiaos/ui':
+        specifier: ^1.0.4
+        version: 1.0.4(react@19.2.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.9.2
+        version: 24.9.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+packages:
+
+  '@gratiaos/pad-core@1.0.4':
+    resolution: {integrity: sha512-vAl0fsMd5/dE65YKcvo8kpAGJLCPxoeMwD+wlNNgAN0/ujixyB1+mF/hRQoFjcVzr55S+iVzkMIQg/zIRWVECg==}
+    peerDependencies:
+      react: ^18 || ^19
+
+  '@gratiaos/ui@1.0.4':
+    resolution: {integrity: sha512-IAtYO4FyHpjw93M3JPwVol7qV3UbgzNiiXIieZe3ypWAY4oQiWVHMf6CZrWAJDWxBzORN5jPRIlpPmeZLI/vkw==}
+    peerDependencies:
+      react: ^18 || ^19
+
+  '@types/node@24.9.2':
+    resolution: {integrity: sha512-uWN8YqxXxqFMX2RqGOrumsKeti4LlmIMIyV0lgut4jx7KQBcBiW6vkDtIBvHnHIquwNfJhk8v2OtmO8zXWHfPA==}
+
+  react@19.2.0:
+    resolution: {integrity: sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ==}
+    engines: {node: '>=0.10.0'}
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+
+snapshots:
+
+  '@gratiaos/pad-core@1.0.4(react@19.2.0)':
+    dependencies:
+      react: 19.2.0
+
+  '@gratiaos/ui@1.0.4(react@19.2.0)':
+    dependencies:
+      react: 19.2.0
+
+  '@types/node@24.9.2':
+    dependencies:
+      undici-types: 7.16.0
+
+  react@19.2.0: {}
+
+  typescript@5.9.3: {}
+
+  undici-types@7.16.0: {}
