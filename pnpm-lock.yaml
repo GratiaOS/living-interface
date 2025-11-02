@@ -11,6 +11,9 @@ importers:
       '@gratiaos/pad-core':
         specifier: ^1.0.4
         version: 1.0.4(react@19.2.0)
+      '@gratiaos/presence-kernel':
+        specifier: link:../garden-core/packages/presence-kernel
+        version: link:../garden-core/packages/presence-kernel
       '@gratiaos/ui':
         specifier: ^1.0.4
         version: 1.0.4(react@19.2.0)

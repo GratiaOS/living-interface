@@ -8,7 +8,10 @@
     "outDir": "dist",
     "baseUrl": ".",
     "jsx": "react-jsx",
-    "lib": ["DOM", "ES2022"]
+    "lib": ["DOM", "ES2022"],
+    "paths": {
+      "@gratiaos/presence-kernel": ["../garden-core/packages/presence-kernel/src/index.ts"]
+    }
   },
   "include": ["src"]
 }

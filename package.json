@@ -22,6 +22,7 @@
   "dependencies": {
     "@gratiaos/pad-core": "^1.0.4",
     "@gratiaos/ui": "^1.0.4",
+    "@gratiaos/presence-kernel": "link:../garden-core/packages/presence-kernel",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }
