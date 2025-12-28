@@ -4,7 +4,7 @@
 // Also listens to incoming signals (via a provided subscribe() bus) and
 // maintains a tiny in-memory radar with auto-expiry.
 // Options highlight: staleMs (radar expiry), debounceMs (burst guard),
-// privacy.includeWhisper (default true).
+// privacy.includeWhisper (default false).
 //
 // Usage:
 // kernel.use(gratiaSignalAdapter({ bus }))
@@ -22,6 +22,7 @@ export type GratiaSignal = {
   phase: Phase
   mood: Mood
   whisper?: string
+  /** Emoji-only seed (1-2 symbols) used as a light resonance hint. */
   seed?: string
   energy?: number
   sig?: string
@@ -37,6 +38,7 @@ export type SignalBus = {
 export type GratiaSignalOpts = {
   bus: SignalBus
   peerId?: string
+  /** Emoji-only seed (1-2 symbols). Non-emoji input is ignored. */
   seed?: string
   interval?: number
   /** Radar expiry window (ms). */
@@ -119,7 +121,7 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
     interval = 15_000,
     staleMs = 60_000,
     debounceMs = 450,
-    privacy = { includeWhisper: true },
+    privacy = { includeWhisper: false },
     energy = defaultEnergyHeuristic,
     resonance = defaultResonance,
   } = opts
@@ -134,28 +136,37 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
   const selfSignal = (): GratiaSignal | null => {
     if (!kernel) return null
     const snapshot = kernel.snapshot
+    const normalizedSeed = normalizeSeedEmoji(seed)
+    const sig = shortHash(`${snapshot.phase}|${snapshot.mood}|${normalizedSeed ?? ""}`)
     const signal: GratiaSignal = {
       id: peerId,
       t: snapshot.t,
       phase: snapshot.phase,
       mood: snapshot.mood,
-      seed,
+      seed: normalizedSeed,
       energy: clamp01(energy()),
       whisper: privacy.includeWhisper ? snapshot.whisper : undefined,
+      sig,
     }
     last = signal
     return signal
   }
 
-  const fallbackSignal = (): GratiaSignal => ({
-    id: peerId,
-    t: Date.now(),
-    phase: "presence",
-    mood: "soft",
-    seed,
-    energy: clamp01(energy()),
-    whisper: undefined,
-  })
+  const fallbackSignal = (): GratiaSignal => {
+    const normalizedSeed = normalizeSeedEmoji(seed)
+    const phase: Phase = "presence"
+    const mood: Mood = "soft"
+    return {
+      id: peerId,
+      t: Date.now(),
+      phase,
+      mood,
+      seed: normalizedSeed,
+      energy: clamp01(energy()),
+      whisper: undefined,
+      sig: shortHash(`${phase}|${mood}|${normalizedSeed ?? ""}`),
+    }
+  }
 
   const radarWithUpsert = createRadar(staleMs, () => last ?? null, resonance)
 
@@ -223,6 +234,24 @@ function clamp01(x: number) {
   if (x < 0) return 0
   if (x > 1) return 1
   return x
+}
+
+const EMOJI_SEED_PATTERN = /\p{Extended_Pictographic}/u
+
+function normalizeSeedEmoji(seed?: string): string | undefined {
+  if (!seed) return undefined
+  const emojis = Array.from(seed).filter((char) => EMOJI_SEED_PATTERN.test(char))
+  if (emojis.length === 0) return undefined
+  return emojis.slice(0, 2).join("")
+}
+
+function shortHash(input: string): string {
+  let hash = 2166136261
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(36).slice(0, 6)
 }
 
 function defaultEnergyHeuristic(): number {
