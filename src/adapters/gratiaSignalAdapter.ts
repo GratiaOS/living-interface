@@ -3,6 +3,8 @@
 // Plugs into PresenceKernel and periodically emits a compact GratiaSignal.
 // Also listens to incoming signals (via a provided subscribe() bus) and
 // maintains a tiny in-memory radar with auto-expiry.
+// Options highlight: staleMs (radar expiry), debounceMs (burst guard),
+// privacy.includeWhisper (default true).
 //
 // Usage:
 // kernel.use(gratiaSignalAdapter({ bus }))
@@ -37,7 +39,10 @@ export type GratiaSignalOpts = {
   peerId?: string
   seed?: string
   interval?: number
+  /** Radar expiry window (ms). */
   staleMs?: number
+  /** Debounce bursty state changes (phase/mood/whisper). */
+  debounceMs?: number
   privacy?: {
     includeWhisper?: boolean
   }
@@ -72,7 +77,7 @@ export type Radar = {
 
 function createRadar(
   staleMs: number,
-  self: () => GratiaSignal,
+  self: () => GratiaSignal | null,
   resonance: (a: GratiaSignal, b: GratiaSignal) => number
 ): Radar & { upsert: (signal: GratiaSignal) => void } {
   const map = new Map<string, RadarEntry>()
@@ -84,12 +89,14 @@ function createRadar(
     },
     get: (id) => map.get(id),
     sweep: (now) => {
+      const nowMs = Number.isFinite(now) ? now : Date.now()
       for (const [id, entry] of map) {
-        if (now - entry.seenAt > staleMs) map.delete(id)
+        if (nowMs - entry.seenAt > staleMs) map.delete(id)
       }
     },
     upsert: (incoming) => {
       const me = self()
+      if (!me) return
       if (incoming.id === me.id) return
       const entry: RadarEntry = {
         signal: incoming,
@@ -111,6 +118,7 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
     seed,
     interval = 15_000,
     staleMs = 60_000,
+    debounceMs = 450,
     privacy = { includeWhisper: true },
     energy = defaultEnergyHeuristic,
     resonance = defaultResonance,
@@ -118,14 +126,13 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
 
   let kernel: PresenceKernel | null = null
   let timer: ReturnType<typeof setInterval> | null = null
+  let emitDebounceTimer: ReturnType<typeof setTimeout> | null = null
   let unsubBus: Unsubscribe | null = null
   let unsubKernel: Unsubscribe | null = null
   let last: GratiaSignal | null = null
 
-  const selfSignal = (): GratiaSignal => {
-    if (!kernel) {
-      throw new Error("PresenceKernel not available yet")
-    }
+  const selfSignal = (): GratiaSignal | null => {
+    if (!kernel) return null
     const snapshot = kernel.snapshot
     const signal: GratiaSignal = {
       id: peerId,
@@ -140,14 +147,34 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
     return signal
   }
 
-  const radarWithUpsert = createRadar(staleMs, () => last ?? selfSignal(), resonance)
+  const fallbackSignal = (): GratiaSignal => ({
+    id: peerId,
+    t: Date.now(),
+    phase: "presence",
+    mood: "soft",
+    seed,
+    energy: clamp01(energy()),
+    whisper: undefined,
+  })
+
+  const radarWithUpsert = createRadar(staleMs, () => last ?? null, resonance)
 
   const emitNow = () => {
     try {
-      bus.send(selfSignal())
+      const signal = selfSignal()
+      if (!signal) return
+      bus.send(signal)
     } catch {
       // swallow transport errors
     }
+  }
+
+  const scheduleEmit = () => {
+    if (emitDebounceTimer) clearTimeout(emitDebounceTimer)
+    emitDebounceTimer = setTimeout(() => {
+      emitDebounceTimer = null
+      emitNow()
+    }, debounceMs)
   }
 
   return {
@@ -158,10 +185,10 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
 
       unsubKernel = k.on((event) => {
         if (event.type === "phase:set" || event.type === "mood:set" || event.type === "whisper") {
-          emitNow()
+          scheduleEmit()
         }
         if (event.type === "tick") {
-          radarWithUpsert.sweep(event.snap.t)
+          radarWithUpsert.sweep(Date.now())
         }
       })
 
@@ -175,6 +202,8 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
     dispose() {
       if (timer) clearInterval(timer)
       timer = null
+      if (emitDebounceTimer) clearTimeout(emitDebounceTimer)
+      emitDebounceTimer = null
       unsubBus?.()
       unsubBus = null
       unsubKernel?.()
@@ -186,7 +215,7 @@ export function gratiaSignalAdapter(opts: GratiaSignalOpts): PresenceAdapter & {
       get: (id) => radarWithUpsert.get(id),
       sweep: (now) => radarWithUpsert.sweep(now),
     },
-    current: () => last ?? selfSignal(),
+    current: () => last ?? selfSignal() ?? fallbackSignal(),
   }
 }
 

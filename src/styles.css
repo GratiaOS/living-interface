@@ -1,0 +1,11 @@
+@import '@gratiaos/tokens';
+@import 'tailwindcss';
+@import '@gratiaos/ui/styles/base.css' layer(components);
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply min-h-dvh bg-surface text-text antialiased;
+  }
+}
